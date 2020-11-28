@@ -1,0 +1,13 @@
+fuel,color,label
+Lost load,#d98286,Lost load
+Lost gen,#d98286,Lost gen
+WindOnshore,#519683,Wind onshore
+WindOffshore,#21685a,Wind offshore
+SolarPV,#fec010,Solar PV
+NaturalGas,#ee7e30,Natural gas
+Nuclear,#ae393f,Nuclear
+Lignite,#916031,Lignite
+HardCoal,#3c291e,Hard coal
+Oil,#a9a9a9,Oil
+SNG,#18d4f0,SNG
+PtG,#12a7cc,PtG
