@@ -97,6 +97,11 @@ ED_merit_order$fuel <- factor(ED_merit_order$fuel, levels = fuel_levels)
 ED_merit_order$mc[ED_merit_order$fuel == "WindOnshore"] <- 1.499999991
 ED_merit_order$mc[ED_merit_order$fuel == "WindOffshore"] <- 1.499999992
 ED_merit_order$mc[ED_merit_order$fuel == "SolarPV"] <- 1.499999993
+ED_merit_order$mc[ED_merit_order$fuel == "Biomass"] <- 1.499999994
+ED_merit_order$mc[ED_merit_order$fuel == "RoR"] <- 1.499999995
+ED_merit_order$mc[ED_merit_order$fuel == "Hydro"] <- 1.499999996
+ED_merit_order$mc[ED_merit_order$fuel == "Geothermal"] <- 1.499999997
+ED_merit_order$mc[ED_merit_order$fuel == "Waste"] <- 1.499999998
 
 
 ED_merit_order <- ED_merit_order[order(ED_merit_order$mc),] 
@@ -124,7 +129,7 @@ if (!exists("ED_P")) ED_P <- multiCSVtoDF("ED_P.csv")         # Generation outpu
 if (!exists("ED_P_R")) ED_P_R <- multiCSVtoDF("ED_P_R.csv")   # Generation output of renewable energy units
 if (!exists("ED_P_S")) ED_P_S <- multiCSVtoDF("ED_P_S.csv")   # Generation output of storages units
 
-ED_dispatch <- rbind(ED_P, ED_P_R) %>%
+ED_dispatch <- rbind(ED_P, ED_P_R, ED_P_S) %>%
   group_by(time, fuel) %>%
   summarise(output = sum(output))
 
@@ -207,7 +212,7 @@ CM_redispatch_dn$type = "dn"
 
 CM_redispatch <- rbind(CM_redispatch_up, CM_redispatch_dn) 
 
-CM_redispatch$fuel <- factor(CM_redispatch$fuel, levels = fuel_levels)
+CM_redispatch$fuel <- factor(CM_redispatch$fuel, levels = fuel_levels_lost)
 
 CM_redispatch_daily <- merge(CM_redispatch, date_tool, by.x = "time", by.y = "hour", all.x = TRUE) %>% 
   group_by(day, fuel, type) %>%
@@ -270,7 +275,7 @@ CM_PtG_redispatch_dn <- rbind(CM_PtG_redispatch_dn, CM_PtG_P_gen_lost)
 CM_PtG_redispatch_dn$type = "dn"
 
 CM_PtG_redispatch <- rbind(CM_PtG_redispatch_up, CM_PtG_redispatch_dn)
-CM_PtG_redispatch$fuel <- factor(CM_PtG_redispatch$fuel, levels = fuel_levels_ext)
+CM_PtG_redispatch$fuel <- factor(CM_PtG_redispatch$fuel, levels = fuel_levels_ext_lost)
 
 CM_PtG_redispatch_hourly <- merge(CM_PtG_redispatch, date_tool, by.x = "time", by.y = "hour", all.x = TRUE)
 
@@ -287,13 +292,6 @@ CM_PtG_redispatch_total <- CM_PtG_redispatch %>% group_by(fuel) %>%
 ### PIE CHART ###
 #################
 
-### Pie chart DATA
-# Nettostrom BNetzA 2016
-data_nettostrom_2015 <- read.csv(file = "data/nettostromerzeugung_de_2015.csv")
-factor(data_nettostrom_2015$fuel, levels = fuel_levels)
-data_nettostrom_2015$source <- "BNetzA"
-data_nettostrom_2015$output_percent <- data_nettostrom_2015$output/sum(data_nettostrom_2015$output) * 100
-
 # ED total
 ED_dispatch_total <- ED_dispatch %>% group_by(fuel) %>%
   summarise(output = sum(output))
@@ -308,6 +306,8 @@ ED_dispatch_after_CM_total$output <- ED_dispatch_after_CM_total$output.x + ED_di
 ED_dispatch_after_CM_total <- ED_dispatch_after_CM_total[, c("fuel", "output", "source")]
 ED_dispatch_after_CM_total$output_percent <- ED_dispatch_after_CM_total$output/sum(ED_dispatch_after_CM_total$output) * 100
 
+# ED + CM and Pumped Hydro
+ED_dispatch_after_CM_total[ED_dispatch_after_CM_total$fuel == "Hydro", ]$output = ED_dispatch_after_CM_total[ED_dispatch_after_CM_total$fuel == "Hydro", ]$output
 
 # Bind all dataframes
 data_pie <- rbind(ED_dispatch_total, ED_dispatch_after_CM_total, data_nettostrom_2015)
@@ -337,41 +337,6 @@ data_maxres_grouped <- data_maxres %>%
 data_pmin_maxres <- rbind(data_pmin_grouped, data_maxres_grouped)
 data_pmin_maxres$fuel <- factor(data_pmin_maxres$fuel, levels = fuel_levels)
 
-#########################
-### REDISPATCH VOLUME ###
-#########################
-
-### CM
-### Redispatch volume DATA
-CM_redispatch_up_total <- CM_redispatch_up %>% group_by(fuel) %>%
-  summarise(output = sum(output))
-CM_redispatch_up_total$model <- "CM"
-
-CM_redispatch_dn_total <- CM_redispatch_dn %>% group_by(fuel) %>%
-  summarise(output = sum(output))
-CM_redispatch_dn_total$model <- "CM"
-
-### CM + PtG
-### Redispatch volume DATA
-CM_PtG_redispatch_up_total <- CM_PtG_redispatch_up %>% group_by(fuel) %>%
-  summarise(output = sum(output))
-CM_PtG_redispatch_up_total$model <- "CM + PtG"
-
-CM_PtG_redispatch_dn_total <- CM_PtG_redispatch_dn %>% group_by(fuel) %>%
-  summarise(output = sum(output))
-CM_PtG_redispatch_dn_total$model <- "CM + PtG"
-
-### Row bind CM and CM + PtG
-data_redispatch_volume_CM <- rbind(CM_redispatch_up_total,
-                                   CM_redispatch_dn_total)
-
-data_redispatch_volume_CM_PtG <- rbind(CM_PtG_redispatch_up_total,
-                                       CM_PtG_redispatch_dn_total)
-
-data_redispatch_volume <- rbind(data_redispatch_volume_CM,
-                                data_redispatch_volume_CM_PtG)
-
-data_redispatch_volume$fuel <- factor(data_redispatch_volume$fuel, levels = fuel_levels_ext)
 
 #################
 ### LINE FLOW ###
